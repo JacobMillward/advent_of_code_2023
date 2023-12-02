@@ -199,7 +199,7 @@ fn parse_part_two(input: &str) -> i32 {
 }
 
 #[cfg(test)]
-mod tests {
+mod day01_tests {
     use super::*;
 
     #[test]
