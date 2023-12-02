@@ -2,8 +2,14 @@ use std::env;
 use std::fs::File;
 use std::io::Read;
 
+#[derive(Debug)]
+enum PuzzleMode {
+    PartOne,
+    PartTwo,
+}
+
 fn main() {
-    let input = match read_input_file_from_args() {
+    let input = match parse_args() {
         Ok(input) => input,
         Err(error) => {
             println!("Error: {}", error);
@@ -11,22 +17,16 @@ fn main() {
         }
     };
 
-    // Loop over each line in the input
-    let mut total_calibration_values = 0;
-    for line in input.lines() {
-        let first_digit = line.chars().find(|c| c.is_ascii_digit()).unwrap();
-        let last_digit = line.chars().rev().find(|c| c.is_ascii_digit()).unwrap();
-        let calibration_value = (first_digit.to_string() + &last_digit.to_string())
-            .parse::<i32>()
-            .unwrap();
+    let (contents, puzzle_mode) = input;
+    let total_calibration_values = match puzzle_mode {
+        _ => parse_part_one(&contents),
+    };
 
-        total_calibration_values += calibration_value;
-    }
-
+    println!("Running puzzle mode: {:?}... ", puzzle_mode);
     println!("Sum of calibration values: {}", total_calibration_values);
 }
 
-fn read_input_file_from_args() -> Result<String, std::io::Error> {
+fn parse_args() -> Result<(String, PuzzleMode), std::io::Error> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -48,5 +48,43 @@ fn read_input_file_from_args() -> Result<String, std::io::Error> {
     let mut contents = String::new();
     file.read_to_string(&mut contents)?;
 
-    Ok(contents)
+    let puzzle_mode = match args.len() {
+        2 => PuzzleMode::PartOne,
+        3 => {
+            let mode = &args[2];
+            match mode.as_str() {
+                "part1" => PuzzleMode::PartOne,
+                "part2" => PuzzleMode::PartTwo,
+                _ => {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "Please provide a valid puzzle mode: 'part1' or 'part2'",
+                    ));
+                }
+            }
+        }
+        _ => {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidInput,
+                "Please provide a valid puzzle mode",
+            ));
+        }
+    };
+
+    Ok((contents, puzzle_mode))
+}
+
+fn parse_part_one(input: &str) -> i32 {
+    let mut total_calibration_values = 0;
+    for line in input.lines() {
+        let first_digit = line.chars().find(|c| c.is_ascii_digit()).unwrap();
+        let last_digit = line.chars().rev().find(|c| c.is_ascii_digit()).unwrap();
+        let calibration_value = (first_digit.to_string() + &last_digit.to_string())
+            .parse::<i32>()
+            .unwrap();
+
+        total_calibration_values += calibration_value;
+    }
+
+    total_calibration_values
 }
