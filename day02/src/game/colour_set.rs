@@ -1,20 +1,20 @@
-pub struct Subset {
+pub struct ColourSet {
     pub num_blue: u32,
     pub num_green: u32,
     pub num_red: u32,
 }
 
-impl Subset {
-    pub fn new(num_blue: u32, num_green: u32, num_red: u32) -> Subset {
-        Subset {
+impl ColourSet {
+    pub fn new(num_blue: u32, num_green: u32, num_red: u32) -> ColourSet {
+        ColourSet {
             num_blue,
             num_green,
             num_red,
         }
     }
 
-    pub fn parse_from_description(subsets_description: &str) -> Subset {
-        let parts = subsets_description.split(", ");
+    pub fn parse_from_description(set_description: &str) -> ColourSet {
+        let parts = set_description.split(", ");
 
         let mut num_blue = 0;
         let mut num_green = 0;
@@ -39,6 +39,6 @@ impl Subset {
             }
         }
 
-        Subset::new(num_blue, num_green, num_red)
+        ColourSet::new(num_blue, num_green, num_red)
     }
 }
