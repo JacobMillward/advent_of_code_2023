@@ -41,4 +41,39 @@ impl ColourSet {
 
         ColourSet::new(num_blue, num_green, num_red)
     }
+
+    /// Returns the power of this [`ColourSet`].
+    /// The power is the product of the number of blue, green and red cubes.
+    pub fn power(&self) -> u32 {
+        self.num_blue * self.num_green * self.num_red
+    }
+}
+
+#[cfg(test)]
+mod colour_set_tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_from_description() {
+        let set = ColourSet::parse_from_description("3 blue, 4 red");
+        assert_eq!(set.num_blue, 3);
+        assert_eq!(set.num_green, 0);
+        assert_eq!(set.num_red, 4);
+
+        let set = ColourSet::parse_from_description("1 red, 2 green, 6 blue");
+        assert_eq!(set.num_blue, 6);
+        assert_eq!(set.num_green, 2);
+        assert_eq!(set.num_red, 1);
+
+        let set = ColourSet::parse_from_description("2 green");
+        assert_eq!(set.num_blue, 0);
+        assert_eq!(set.num_green, 2);
+        assert_eq!(set.num_red, 0);
+    }
+
+    #[test]
+    fn test_power() {
+        let set = ColourSet::new(3, 4, 5);
+        assert_eq!(set.power(), 60);
+    }
 }

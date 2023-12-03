@@ -38,6 +38,14 @@ fn main() {
         .sum::<u32>();
 
     println!("Sum of valid game IDs: {}", valid_game_ids_sum);
+
+    // Part 2
+    let minimal_sets_power_sum = games
+        .iter()
+        .map(|game| game.generate_minimal_set().power())
+        .sum::<u32>();
+
+    println!("Sum of minimal sets' power: {}", minimal_sets_power_sum);
 }
 
 fn parse_games(contents: &str) -> Vec<Game> {
@@ -137,5 +145,33 @@ Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green"#;
         assert!(!games[2].is_set_valid(&set));
         assert!(!games[3].is_set_valid(&set));
         assert!(games[4].is_set_valid(&set));
+    }
+
+    #[test]
+    fn test_minimal_set_generation() {
+        let games = parse_games(GAME_CONTENTS)
+            .iter()
+            .map(|game| game.generate_minimal_set())
+            .collect::<Vec<_>>();
+
+        assert_eq!(games[0].num_blue, 6);
+        assert_eq!(games[0].num_green, 2);
+        assert_eq!(games[0].num_red, 4);
+
+        assert_eq!(games[1].num_blue, 4);
+        assert_eq!(games[1].num_green, 3);
+        assert_eq!(games[1].num_red, 1);
+
+        assert_eq!(games[2].num_blue, 6);
+        assert_eq!(games[2].num_green, 13);
+        assert_eq!(games[2].num_red, 20);
+
+        assert_eq!(games[3].num_blue, 15);
+        assert_eq!(games[3].num_green, 3);
+        assert_eq!(games[3].num_red, 14);
+
+        assert_eq!(games[4].num_blue, 2);
+        assert_eq!(games[4].num_green, 3);
+        assert_eq!(games[4].num_red, 6);
     }
 }
