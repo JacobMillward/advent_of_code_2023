@@ -2,32 +2,10 @@ mod game;
 
 use game::Game;
 
-use std::env;
-use std::fs::File;
-use std::io::Read;
-
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let puzzle_input = include_str!("../input.txt");
 
-    if args.len() < 2 {
-        println!("Please provide a file path as the first argument");
-        return;
-    }
-
-    let file_path = &args[1];
-
-    let mut file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(error) => {
-            println!("Error: {}", error);
-            return;
-        }
-    };
-
-    let mut contents = String::new();
-    file.read_to_string(&mut contents).unwrap();
-
-    let games = parse_games(&contents);
+    let games = parse_games(puzzle_input);
 
     // Part 1
     let set = game::ColourSet::new(14, 13, 12);
