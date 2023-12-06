@@ -1,3 +1,10 @@
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct Symbol {
+    character: char,
+    row_index: usize,
+    column_index: usize,
+}
+
 pub struct Schematic {
     grid: Vec<Vec<char>>,
 }
@@ -16,13 +23,14 @@ impl Schematic {
         Self::new(grid)
     }
 
-    /// Returns a list of part numbers in the schematic.
+    /// Returns a list of part numbers in the schematic, alongside the symbols that they are adjacent to.
     /// A part number is a number that is not adjacent to any symbols.
     /// Multiple digits in a row are considered a single part number.
-    pub fn get_part_numbers(&self) -> Vec<usize> {
+    pub fn get_part_numbers(&self) -> Vec<(usize, Vec<Symbol>)> {
         let mut part_numbers = Vec::new();
 
         let mut adjacent_indexes_set = std::collections::HashSet::new();
+        let mut adjacent_symbols = Vec::new();
 
         for (row_index, row) in self.grid.iter().enumerate() {
             let mut is_adjacent_to_symbol = false;
@@ -32,10 +40,14 @@ impl Schematic {
                     current_part_number.push(*character);
                 } else if !current_part_number.is_empty() {
                     if is_adjacent_to_symbol {
-                        part_numbers.push(current_part_number.parse().unwrap());
+                        part_numbers.push((
+                            current_part_number.parse().unwrap(),
+                            adjacent_symbols.clone(),
+                        ));
                         is_adjacent_to_symbol = false;
                     }
 
+                    adjacent_symbols.clear();
                     current_part_number.clear();
                     continue;
                 }
@@ -66,27 +78,80 @@ impl Schematic {
                     adjacent_indexes_set.extend(adjacent_indexes);
                     adjacent_indexes_set.remove(&(row_index, column_index));
 
-                    let current_index_adjacent = adjacent_indexes_set.iter().fold(
-                        false,
-                        |acc, (row_index, column_index)| {
-                            acc || self.is_symbol(*row_index, *column_index)
-                        },
-                    );
+                    let current_adjacent_symbols = adjacent_indexes_set
+                        .iter()
+                        .filter(|(row_index, column_index)| {
+                            let character = self.grid[*row_index][*column_index];
+                            !character.is_ascii_digit() && character != '.'
+                        })
+                        .map(|(row_index, column_index)| Symbol {
+                            character: self.grid[*row_index][*column_index],
+                            row_index: *row_index,
+                            column_index: *column_index,
+                        })
+                        .collect::<Vec<_>>();
 
-                    is_adjacent_to_symbol = current_index_adjacent || is_adjacent_to_symbol;
+                    is_adjacent_to_symbol =
+                        !current_adjacent_symbols.is_empty() || is_adjacent_to_symbol;
+
+                    adjacent_symbols.extend(current_adjacent_symbols);
                 }
             }
 
             if !current_part_number.is_empty() && is_adjacent_to_symbol {
-                part_numbers.push(current_part_number.parse().unwrap());
+                part_numbers.push((
+                    current_part_number.parse().unwrap(),
+                    adjacent_symbols.clone(),
+                ));
             }
         }
         part_numbers
     }
 
-    fn is_symbol(&self, row_index: usize, column_index: usize) -> bool {
-        let character = self.grid[row_index][column_index];
-        !character.is_ascii_digit() && character != '.'
+    /// Returns a list of gear ratios in the schematic.
+    /// A gear ratio is any '*' character adjacent to two part numbers, multiplied together.
+    pub fn get_gear_ratios(part_numbers: &[(usize, Vec<Symbol>)]) -> Vec<usize> {
+        // Find all '*' symbols that are referenced by two part numbers
+        // Don't count the same gear ratio twice
+        let mut gear_ratios = Vec::new();
+
+        let gears = part_numbers
+            .iter()
+            .flat_map(|(_, symbols)| symbols.iter())
+            .filter(|symbol| symbol.character == '*')
+            .collect::<Vec<_>>();
+
+        for gear in gears {
+            let gear_row_index = gear.row_index;
+            let gear_column_index = gear.column_index;
+
+            // Find all part numbers that reference this gear
+            let adjacent_part_numbers = part_numbers
+                .iter()
+                .filter(|(_, symbols)| {
+                    symbols.iter().any(|symbol| {
+                        symbol.row_index == gear_row_index
+                            && symbol.column_index == gear_column_index
+                    })
+                })
+                .map(|(part_number, _)| *part_number)
+                .collect::<Vec<_>>();
+
+            if adjacent_part_numbers.len() == 2 {
+                let gear_ratio = adjacent_part_numbers[0] * adjacent_part_numbers[1];
+                if !gear_ratios
+                    .iter()
+                    .any(|((x, y), _)| *x == gear_row_index && *y == gear_column_index)
+                {
+                    gear_ratios.push(((gear_row_index, gear_column_index), gear_ratio));
+                }
+            }
+        }
+
+        gear_ratios
+            .iter()
+            .map(|(_, gear_ratio)| *gear_ratio)
+            .collect::<Vec<_>>()
     }
 }
 
@@ -122,6 +187,10 @@ mod schematic_tests {
         let part_numbers = schematic.get_part_numbers();
 
         assert_eq!(part_numbers.len(), 8);
+        let part_numbers = part_numbers
+            .iter()
+            .map(|(part_number, _)| *part_number)
+            .collect::<Vec<_>>();
         assert!(part_numbers.contains(&467));
         assert!(part_numbers.contains(&35));
         assert!(part_numbers.contains(&633));
@@ -130,5 +199,17 @@ mod schematic_tests {
         assert!(part_numbers.contains(&755));
         assert!(part_numbers.contains(&664));
         assert!(part_numbers.contains(&598));
+    }
+
+    #[test]
+    fn test_get_gear_ratios() {
+        let schematic = Schematic::parse_from_contents(TEST_CONTENTS);
+
+        let part_numbers = schematic.get_part_numbers();
+        let gear_ratios = Schematic::get_gear_ratios(&part_numbers);
+
+        assert_eq!(gear_ratios.len(), 2);
+        assert_eq!(gear_ratios[0], 467 * 35);
+        assert_eq!(gear_ratios[1], 755 * 598);
     }
 }
