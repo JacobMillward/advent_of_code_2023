@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Symbol {
     character: char,
@@ -29,12 +31,16 @@ impl Schematic {
     pub fn get_part_numbers(&self) -> Vec<(usize, Vec<Symbol>)> {
         let mut part_numbers = Vec::new();
 
-        let mut adjacent_indexes_set = std::collections::HashSet::new();
-        let mut adjacent_symbols = Vec::new();
+        let mut adjacent_indexes_set = HashSet::new();
+        let mut adjacent_symbols = HashSet::new();
 
         for (row_index, row) in self.grid.iter().enumerate() {
             let mut is_adjacent_to_symbol = false;
             let mut current_part_number = String::new();
+
+            adjacent_symbols.clear();
+            current_part_number.clear();
+
             for (column_index, character) in row.iter().enumerate() {
                 if character.is_ascii_digit() {
                     current_part_number.push(*character);
@@ -42,7 +48,7 @@ impl Schematic {
                     if is_adjacent_to_symbol {
                         part_numbers.push((
                             current_part_number.parse().unwrap(),
-                            adjacent_symbols.clone(),
+                            adjacent_symbols.clone().into_iter().collect::<Vec<_>>(),
                         ));
                         is_adjacent_to_symbol = false;
                     }
@@ -101,7 +107,7 @@ impl Schematic {
             if !current_part_number.is_empty() && is_adjacent_to_symbol {
                 part_numbers.push((
                     current_part_number.parse().unwrap(),
-                    adjacent_symbols.clone(),
+                    adjacent_symbols.clone().into_iter().collect::<Vec<_>>(),
                 ));
             }
         }
@@ -111,8 +117,6 @@ impl Schematic {
     /// Returns a list of gear ratios in the schematic.
     /// A gear ratio is any '*' character adjacent to two part numbers, multiplied together.
     pub fn get_gear_ratios(part_numbers: &[(usize, Vec<Symbol>)]) -> Vec<usize> {
-        // Find all '*' symbols that are referenced by two part numbers
-        // Don't count the same gear ratio twice
         let mut gear_ratios = Vec::new();
 
         let gears = part_numbers
@@ -161,8 +165,8 @@ mod schematic_tests {
 
     const TEST_CONTENTS: &str = r#"467..114..
 ...*......
-..35..633.
-......#...
+..35...633
+.......#..
 617*......
 .....+.58.
 ..592.....
@@ -187,18 +191,79 @@ mod schematic_tests {
         let part_numbers = schematic.get_part_numbers();
 
         assert_eq!(part_numbers.len(), 8);
-        let part_numbers = part_numbers
-            .iter()
-            .map(|(part_number, _)| *part_number)
-            .collect::<Vec<_>>();
-        assert!(part_numbers.contains(&467));
-        assert!(part_numbers.contains(&35));
-        assert!(part_numbers.contains(&633));
-        assert!(part_numbers.contains(&617));
-        assert!(part_numbers.contains(&592));
-        assert!(part_numbers.contains(&755));
-        assert!(part_numbers.contains(&664));
-        assert!(part_numbers.contains(&598));
+
+        let expected = vec![
+            (
+                467,
+                vec![Symbol {
+                    character: '*',
+                    row_index: 1,
+                    column_index: 3,
+                }],
+            ),
+            (
+                35,
+                vec![Symbol {
+                    character: '*',
+                    row_index: 1,
+                    column_index: 3,
+                }],
+            ),
+            (
+                633,
+                vec![Symbol {
+                    character: '#',
+                    row_index: 3,
+                    column_index: 7,
+                }],
+            ),
+            (
+                617,
+                vec![Symbol {
+                    character: '*',
+                    row_index: 4,
+                    column_index: 3,
+                }],
+            ),
+            (
+                592,
+                vec![Symbol {
+                    character: '+',
+                    row_index: 5,
+                    column_index: 5,
+                }],
+            ),
+            (
+                755,
+                vec![Symbol {
+                    character: '*',
+                    row_index: 8,
+                    column_index: 5,
+                }],
+            ),
+            (
+                664,
+                vec![Symbol {
+                    character: '$',
+                    row_index: 8,
+                    column_index: 3,
+                }],
+            ),
+            (
+                598,
+                vec![Symbol {
+                    character: '*',
+                    row_index: 8,
+                    column_index: 5,
+                }],
+            ),
+        ];
+
+        for (part_number, symbols) in &part_numbers {
+            assert!(expected.contains(&(*part_number, symbols.clone())));
+        }
+
+        assert_eq!(part_numbers, expected);
     }
 
     #[test]
