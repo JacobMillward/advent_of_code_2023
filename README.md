@@ -25,3 +25,4 @@ cargo test --bin day01
 | [Day 1: Trebuchet?!](https://adventofcode.com/2023/day/1)    | [✔️](day01/src/main.rs)      | [✔️](day01/src/main.rs)      |
 | [Day 2: Cube Conundrum](https://adventofcode.com/2023/day/2) | [✔️](day02/src/main.rs)      | [✔️](day02/src/main.rs)      |
 | [Day 3: Gear Ratios](https://adventofcode.com/2023/day/3)    | [✔️](day03/src/schematic.rs) | [✔️](day03/src/schematic.rs) |
+| [Day 4: Scratchcards ](https://adventofcode.com/2023/day/4)  | [✔️](day04/src/main.rs)      |                              |
