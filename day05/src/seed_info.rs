@@ -31,26 +31,42 @@ impl InfoType {
 }
 
 pub struct SeedInfo {
-    pub seed: u32,
-    pub soil: u32,
-    pub fertilizer: u32,
-    pub water: u32,
-    pub light: u32,
-    pub temperature: u32,
-    pub humidity: u32,
-    pub location: u32,
+    pub seed: usize,
+    pub soil: usize,
+    pub fertilizer: usize,
+    pub water: usize,
+    pub light: usize,
+    pub temperature: usize,
+    pub humidity: usize,
+    pub location: usize,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct InfoMapping {
-    pub ranges: Vec<(u32, u32, u32)>,
+    pub ranges: Vec<(usize, usize, usize)>,
+}
+
+impl InfoMapping {
+    pub fn transform(&self, value: usize) -> usize {
+        for (dst_range_start, src_range_start, range_len) in &self.ranges {
+            if (value < *src_range_start) || (value >= *src_range_start + *range_len) {
+                continue;
+            }
+
+            let index = value - src_range_start;
+
+            return dst_range_start + index;
+        }
+
+        return value;
+    }
 }
 
 /// A map of info to a tuple of another info type and a map to translate the info value from one to another
 type InfoMap = HashMap<InfoType, (InfoType, InfoMapping)>;
 
 pub struct Almanac {
-    pub seeds: Vec<u32>,
+    pub seeds: Vec<usize>,
     pub info_map: InfoMap,
 }
 
@@ -64,7 +80,7 @@ impl Almanac {
             .nth(1)
             .unwrap()
             .split(' ')
-            .map(|s| s.parse::<u32>().unwrap())
+            .map(|s| s.parse::<usize>().unwrap())
             .collect::<Vec<_>>();
 
         let info_map = Self::parse_info(lines);
@@ -110,7 +126,7 @@ impl Almanac {
 
                     let values = line
                         .split(' ')
-                        .map(|s| s.parse::<u32>().unwrap())
+                        .map(|s| s.parse::<usize>().unwrap())
                         .collect::<Vec<_>>();
                     let range_tuple = (values[0], values[1], values[2]);
 
@@ -136,7 +152,43 @@ impl Almanac {
     }
 
     pub fn to_seed_info(&self) -> Vec<SeedInfo> {
-        todo!()
+        let mut seed_info = Vec::new();
+
+        for seed in &self.seeds {
+            let mut seed_info_map = HashMap::new();
+
+            // Start with Seed, end with Location
+            let mut current_info_type = InfoType::Seed;
+            let mut current_info_value = *seed;
+
+            while current_info_type != InfoType::Location {
+                let (to_info_type, info_mapping) = match self.info_map.get(&current_info_type) {
+                    Some(map) => map,
+                    None => break,
+                };
+
+                let next_info_value = info_mapping.transform(current_info_value);
+                seed_info_map.insert(to_info_type, next_info_value);
+
+                current_info_type = *to_info_type;
+                current_info_value = next_info_value;
+            }
+
+            let info = SeedInfo {
+                seed: *seed,
+                soil: *seed_info_map.get(&InfoType::Soil).unwrap(),
+                fertilizer: *seed_info_map.get(&InfoType::Fertilizer).unwrap(),
+                water: *seed_info_map.get(&InfoType::Water).unwrap(),
+                light: *seed_info_map.get(&InfoType::Light).unwrap(),
+                temperature: *seed_info_map.get(&InfoType::Temperature).unwrap(),
+                humidity: *seed_info_map.get(&InfoType::Humidity).unwrap(),
+                location: *seed_info_map.get(&InfoType::Location).unwrap(),
+            };
+
+            seed_info.push(info);
+        }
+
+        seed_info
     }
 }
 
@@ -226,5 +278,13 @@ humidity-to-location map:
             assert_eq!(seed.seed, expected_soil.0);
             assert_eq!(seed.soil, expected_soil.1);
         }
+
+        let min_location_number = seed_info
+            .iter()
+            .min_by_key(|info| info.location)
+            .unwrap()
+            .location;
+
+        assert_eq!(min_location_number, 35);
     }
 }
