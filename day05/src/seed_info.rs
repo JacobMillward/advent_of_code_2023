@@ -91,6 +91,7 @@ impl Almanac {
             let current_line_state = match line.chars().next() {
                 Some(c) if c.is_digit(10) => State::InInfo,
                 Some(c) if c.is_whitespace() => State::Blank,
+                None => State::Blank,
                 _ => State::InDefinition,
             };
 
@@ -120,6 +121,8 @@ impl Almanac {
                     current_map_type = None;
                 }
 
+                (State::Blank, State::Blank) => (),
+
                 _ => panic!(
                     "Invalid state transition: {:?} -> {:?}",
                     current_state, current_line_state
@@ -131,11 +134,27 @@ impl Almanac {
 
         info_map
     }
+
+    pub fn to_seed_info(&self) -> Vec<SeedInfo> {
+        todo!()
+    }
 }
 
 #[cfg(test)]
 mod almanac_tests {
     use super::*;
+
+    #[test]
+    fn test_from_str() {
+        let input = r#"seeds: 1 2 3 4 5 6 7 8 9 10
+
+seed-to-soil map:
+50 98 2"#;
+
+        let almanac = Almanac::from_str(input);
+
+        assert_eq!(almanac.seeds, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    }
 
     #[test]
     fn test_parse_info() {
@@ -160,5 +179,52 @@ mod almanac_tests {
         };
 
         assert_eq!(info_map, expected_map);
+    }
+
+    #[test]
+    fn test_to_seed_info() {
+        let input = r#"seeds: 79 14 55 13
+
+seed-to-soil map:
+50 98 2
+52 50 48
+
+soil-to-fertilizer map:
+0 15 37
+37 52 2
+39 0 15
+
+fertilizer-to-water map:
+49 53 8
+0 11 42
+42 0 7
+57 7 4
+
+water-to-light map:
+88 18 7
+18 25 70
+
+light-to-temperature map:
+45 77 23
+81 45 19
+68 64 13
+
+temperature-to-humidity map:
+0 69 1
+1 0 69
+
+humidity-to-location map:
+60 56 37
+56 93 4"#;
+
+        let almanac = Almanac::from_str(input);
+        let seed_info = almanac.to_seed_info();
+
+        let expected_soil_numbers = vec![(79, 81), (14, 14), (55, 57), (13, 13)];
+
+        for (seed, expected_soil) in seed_info.iter().zip(expected_soil_numbers.iter()) {
+            assert_eq!(seed.seed, expected_soil.0);
+            assert_eq!(seed.soil, expected_soil.1);
+        }
     }
 }
