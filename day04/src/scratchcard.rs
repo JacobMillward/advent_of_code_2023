@@ -1,7 +1,9 @@
+#[derive(Debug, Clone)]
 pub struct ScratchCard {
     pub id: u32,
     pub winning_numbers: Vec<u8>,
     pub scratch_numbers: Vec<u8>,
+    pub instances: u32,
 }
 
 impl ScratchCard {
@@ -29,6 +31,7 @@ impl ScratchCard {
             id: card_id,
             winning_numbers,
             scratch_numbers,
+            instances: 1,
         }
     }
 
@@ -46,6 +49,28 @@ impl ScratchCard {
         }
 
         score
+    }
+
+    pub fn calculate_total_scratchcards(cards: &mut [ScratchCard]) -> u32 {
+        for index in 0..cards.len() {
+            let number_of_winning_numbers = (&cards[index])
+                .winning_numbers
+                .iter()
+                .filter(|number| (&cards[index]).scratch_numbers.contains(&number))
+                .count();
+
+            if number_of_winning_numbers > 0 {
+                let max_index = cards.len() - 1;
+                let new_cards =
+                    (index + 1..=index + number_of_winning_numbers).filter(|&id| id <= max_index);
+
+                for id in new_cards {
+                    cards[id].instances += cards[index].instances;
+                }
+            }
+        }
+
+        cards.iter().map(|card| card.instances).sum()
     }
 }
 
@@ -83,5 +108,24 @@ Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"#;
         assert_eq!(cards[3].calculate_score(), 1);
         assert_eq!(cards[4].calculate_score(), 0);
         assert_eq!(cards[5].calculate_score(), 0);
+    }
+
+    #[test]
+    fn test_calculate_total_scratchcards() {
+        let input = r#"Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11"#;
+
+        let mut cards = input
+            .lines()
+            .map(ScratchCard::parse_from_text)
+            .collect::<Vec<_>>();
+
+        let new_cards = ScratchCard::calculate_total_scratchcards(&mut cards);
+
+        assert_eq!(new_cards, 30);
     }
 }
