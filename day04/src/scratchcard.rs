@@ -53,18 +53,21 @@ impl ScratchCard {
 
     pub fn calculate_total_scratchcards(cards: &mut [ScratchCard]) -> u32 {
         for index in 0..cards.len() {
-            let number_of_winning_numbers = (&cards[index])
-                .winning_numbers
-                .iter()
-                .filter(|number| (&cards[index]).scratch_numbers.contains(&number))
-                .count();
+            let number_of_winning_numbers =
+                cards[index].winning_numbers.iter().fold(0, |acc, number| {
+                    if cards[index].scratch_numbers.contains(number) {
+                        acc + 1
+                    } else {
+                        acc
+                    }
+                });
 
             if number_of_winning_numbers > 0 {
                 let max_index = cards.len() - 1;
-                let new_cards =
-                    (index + 1..=index + number_of_winning_numbers).filter(|&id| id <= max_index);
 
-                for id in new_cards {
+                for id in
+                    (index + 1..=index + number_of_winning_numbers).filter(|&id| id <= max_index)
+                {
                     cards[id].instances += cards[index].instances;
                 }
             }
