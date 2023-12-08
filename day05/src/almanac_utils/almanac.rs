@@ -14,6 +14,8 @@ pub struct Almanac {
 }
 
 impl Almanac {
+    /// Parses the almanac from a string
+    /// Assumes each sead in the "seeds" line is a single value
     pub fn from_str_part1(input: &str) -> Self {
         let mut lines = input.lines();
 
@@ -31,6 +33,9 @@ impl Almanac {
         Self { seeds, info_map }
     }
 
+    /// Parses the almanac from a string
+    /// Assumes each sead in the "seeds" line is a pair of values describing a range of seeds in the format
+    /// `<start> <length>`
     pub fn from_str_part2(input: &str) -> Self {
         let mut lines = input.lines();
 
@@ -89,9 +94,8 @@ impl Almanac {
                         .split(' ')
                         .map(|s| s.parse::<usize>().unwrap())
                         .collect::<Vec<_>>();
-                    let range_tuple = (values[0], values[1], values[2]);
 
-                    map.ranges.push(range_tuple);
+                    map.add_range(values[0], values[1], values[2]);
                 }
 
                 (State::InInfo, State::Blank) => {
@@ -112,15 +116,16 @@ impl Almanac {
         info_map
     }
 
-    pub fn to_seed_info(&self) -> Vec<SeedInfo> {
+    /// Calculates the seed info for each seed in the almanac
+    pub fn to_seed_info(&self) -> Vec<SeedRangeInfo> {
         let mut seed_info = Vec::new();
 
         for seed_range in &self.seeds {
-            let mut seed_info_map = HashMap::new();
+            let mut seed_info_map: HashMap<InfoType, Vec<(usize, usize)>> = HashMap::new();
 
             // Start with Seed, end with Location
             let mut current_info_type = InfoType::Seed;
-            let mut current_info_value = seed_range.0;
+            let mut current_info_values = vec![*seed_range];
 
             while current_info_type != InfoType::Location {
                 let (to_info_type, info_mapping) = match self.info_map.get(&current_info_type) {
@@ -128,22 +133,26 @@ impl Almanac {
                     None => break,
                 };
 
-                let next_info_value = info_mapping.transform(current_info_value);
-                seed_info_map.insert(to_info_type, next_info_value);
+                let mut next_info_values = Vec::new();
+                current_info_values.iter().for_each(|(start, len)| {
+                    let transformed_ranges = info_mapping.transform_range((*start, *len));
+                    next_info_values.extend(transformed_ranges);
+                });
 
+                seed_info_map.insert(*to_info_type, next_info_values.clone());
                 current_info_type = *to_info_type;
-                current_info_value = next_info_value;
+                current_info_values = next_info_values;
             }
 
-            let info = SeedInfo {
-                seed: seed_range.0,
-                soil: *seed_info_map.get(&InfoType::Soil).unwrap(),
-                fertilizer: *seed_info_map.get(&InfoType::Fertilizer).unwrap(),
-                water: *seed_info_map.get(&InfoType::Water).unwrap(),
-                light: *seed_info_map.get(&InfoType::Light).unwrap(),
-                temperature: *seed_info_map.get(&InfoType::Temperature).unwrap(),
-                humidity: *seed_info_map.get(&InfoType::Humidity).unwrap(),
-                location: *seed_info_map.get(&InfoType::Location).unwrap(),
+            let info = SeedRangeInfo {
+                seeds: *seed_range,
+                soils: seed_info_map.get(&InfoType::Soil).unwrap().clone(),
+                fertilizers: seed_info_map.get(&InfoType::Fertilizer).unwrap().clone(),
+                waters: seed_info_map.get(&InfoType::Water).unwrap().clone(),
+                lights: seed_info_map.get(&InfoType::Light).unwrap().clone(),
+                temperatures: seed_info_map.get(&InfoType::Temperature).unwrap().clone(),
+                humidities: seed_info_map.get(&InfoType::Humidity).unwrap().clone(),
+                locations: seed_info_map.get(&InfoType::Location).unwrap().clone(),
             };
 
             seed_info.push(info);
@@ -153,15 +162,15 @@ impl Almanac {
     }
 }
 
-pub struct SeedInfo {
-    pub seed: usize,
-    pub soil: usize,
-    pub fertilizer: usize,
-    pub water: usize,
-    pub light: usize,
-    pub temperature: usize,
-    pub humidity: usize,
-    pub location: usize,
+pub struct SeedRangeInfo {
+    pub seeds: (usize, usize),
+    pub soils: Vec<(usize, usize)>,
+    pub fertilizers: Vec<(usize, usize)>,
+    pub waters: Vec<(usize, usize)>,
+    pub lights: Vec<(usize, usize)>,
+    pub temperatures: Vec<(usize, usize)>,
+    pub humidities: Vec<(usize, usize)>,
+    pub locations: Vec<(usize, usize)>,
 }
 
 #[cfg(test)]
@@ -207,7 +216,7 @@ seed-to-soil map:
                 (
                     InfoType::Soil,
                     InfoMapping {
-                        ranges: vec![(50, 98, 2), (52, 50, 48)],
+                        ranges: vec![(52, 50, 48), (50, 98, 2)],
                     },
                 ),
             );
@@ -256,18 +265,12 @@ humidity-to-location map:
         let almanac = Almanac::from_str_part1(input);
         let seed_info = almanac.to_seed_info();
 
-        let expected_soil_numbers = [(79, 81), (14, 14), (55, 57), (13, 13)];
-
-        for (seed, expected_soil) in seed_info.iter().zip(expected_soil_numbers.iter()) {
-            assert_eq!(seed.seed, expected_soil.0);
-            assert_eq!(seed.soil, expected_soil.1);
-        }
-
         let min_location_number = seed_info
             .iter()
-            .min_by_key(|info| info.location)
+            .flat_map(|info| &info.locations)
+            .min_by_key(|(start, _)| *start)
             .unwrap()
-            .location;
+            .0;
 
         assert_eq!(min_location_number, 35);
     }
