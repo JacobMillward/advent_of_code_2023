@@ -1,6 +1,6 @@
-mod almanac;
+mod almanac_utils;
 
-use almanac::Almanac;
+use almanac_utils::Almanac;
 
 fn main() {
     let puzzle_input = include_str!("../input.txt");
