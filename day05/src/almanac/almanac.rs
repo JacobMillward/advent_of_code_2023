@@ -1,4 +1,5 @@
 extern crate regex;
+use itertools::Itertools;
 use regex::Regex;
 use std::{collections::HashMap, str::Lines};
 
@@ -8,12 +9,12 @@ use super::info_type::{InfoMapping, InfoType};
 type InfoMap = HashMap<InfoType, (InfoType, InfoMapping)>;
 
 pub struct Almanac {
-    pub seeds: Vec<usize>,
+    pub seeds: Vec<(usize, usize)>,
     pub info_map: InfoMap,
 }
 
 impl Almanac {
-    pub fn from_str(input: &str) -> Self {
+    pub fn from_str_part1(input: &str) -> Self {
         let mut lines = input.lines();
 
         let first_line = lines.next().unwrap();
@@ -22,7 +23,25 @@ impl Almanac {
             .nth(1)
             .unwrap()
             .split(' ')
+            .map(|s| (s.parse::<usize>().unwrap(), 1))
+            .collect::<Vec<_>>();
+
+        let info_map = Self::parse_info(lines);
+
+        Self { seeds, info_map }
+    }
+
+    pub fn from_str_part2(input: &str) -> Self {
+        let mut lines = input.lines();
+
+        let first_line = lines.next().unwrap();
+        let seeds = first_line
+            .split("seeds: ")
+            .nth(1)
+            .unwrap()
+            .split_whitespace()
             .map(|s| s.parse::<usize>().unwrap())
+            .tuples::<(usize, usize)>()
             .collect::<Vec<_>>();
 
         let info_map = Self::parse_info(lines);
@@ -96,12 +115,12 @@ impl Almanac {
     pub fn to_seed_info(&self) -> Vec<SeedInfo> {
         let mut seed_info = Vec::new();
 
-        for seed in &self.seeds {
+        for seed_range in &self.seeds {
             let mut seed_info_map = HashMap::new();
 
             // Start with Seed, end with Location
             let mut current_info_type = InfoType::Seed;
-            let mut current_info_value = *seed;
+            let mut current_info_value = seed_range.0;
 
             while current_info_type != InfoType::Location {
                 let (to_info_type, info_mapping) = match self.info_map.get(&current_info_type) {
@@ -117,7 +136,7 @@ impl Almanac {
             }
 
             let info = SeedInfo {
-                seed: *seed,
+                seed: seed_range.0,
                 soil: *seed_info_map.get(&InfoType::Soil).unwrap(),
                 fertilizer: *seed_info_map.get(&InfoType::Fertilizer).unwrap(),
                 water: *seed_info_map.get(&InfoType::Water).unwrap(),
@@ -150,15 +169,27 @@ mod almanac_tests {
     use super::*;
 
     #[test]
-    fn test_from_str() {
-        let input = r#"seeds: 1 2 3 4 5 6 7 8 9 10
+    fn test_from_str_part1() {
+        let input = r#"seeds: 1 2 3 4
 
 seed-to-soil map:
 50 98 2"#;
 
-        let almanac = Almanac::from_str(input);
+        let almanac = Almanac::from_str_part1(input);
 
-        assert_eq!(almanac.seeds, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        assert_eq!(almanac.seeds, vec![(1, 1), (2, 1), (3, 1), (4, 1)]);
+    }
+
+    #[test]
+    fn test_from_str_part2() {
+        let input = r#"seeds: 1 2 3 4
+
+seed-to-soil map:
+50 98 2"#;
+
+        let almanac = Almanac::from_str_part2(input);
+
+        assert_eq!(almanac.seeds, vec![(1, 2), (3, 4)]);
     }
 
     #[test]
@@ -222,7 +253,7 @@ humidity-to-location map:
 60 56 37
 56 93 4"#;
 
-        let almanac = Almanac::from_str(input);
+        let almanac = Almanac::from_str_part1(input);
         let seed_info = almanac.to_seed_info();
 
         let expected_soil_numbers = [(79, 81), (14, 14), (55, 57), (13, 13)];

@@ -5,7 +5,7 @@ use almanac::Almanac;
 fn main() {
     let puzzle_input = include_str!("../input.txt");
 
-    let almanac = Almanac::from_str(puzzle_input);
+    let almanac = Almanac::from_str_part1(puzzle_input);
     let seed_info = almanac.to_seed_info();
 
     // Part 1
