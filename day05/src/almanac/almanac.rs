@@ -2,65 +2,7 @@ extern crate regex;
 use regex::Regex;
 use std::{collections::HashMap, str::Lines};
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
-pub enum InfoType {
-    Seed,
-    Soil,
-    Fertilizer,
-    Water,
-    Light,
-    Temperature,
-    Humidity,
-    Location,
-}
-
-impl InfoType {
-    pub fn from_str(text: &str) -> Self {
-        match text.to_lowercase().as_str() {
-            "seed" => InfoType::Seed,
-            "soil" => InfoType::Soil,
-            "fertilizer" => InfoType::Fertilizer,
-            "water" => InfoType::Water,
-            "light" => InfoType::Light,
-            "temperature" => InfoType::Temperature,
-            "humidity" => InfoType::Humidity,
-            "location" => InfoType::Location,
-            _ => panic!("Invalid info type: {}", text),
-        }
-    }
-}
-
-pub struct SeedInfo {
-    pub seed: usize,
-    pub soil: usize,
-    pub fertilizer: usize,
-    pub water: usize,
-    pub light: usize,
-    pub temperature: usize,
-    pub humidity: usize,
-    pub location: usize,
-}
-
-#[derive(Debug, PartialEq, Eq, Hash)]
-pub struct InfoMapping {
-    pub ranges: Vec<(usize, usize, usize)>,
-}
-
-impl InfoMapping {
-    pub fn transform(&self, value: usize) -> usize {
-        for (dst_range_start, src_range_start, range_len) in &self.ranges {
-            if (value < *src_range_start) || (value >= *src_range_start + *range_len) {
-                continue;
-            }
-
-            let index = value - src_range_start;
-
-            return dst_range_start + index;
-        }
-
-        return value;
-    }
-}
+use super::info_type::{InfoMapping, InfoType};
 
 /// A map of info to a tuple of another info type and a map to translate the info value from one to another
 type InfoMap = HashMap<InfoType, (InfoType, InfoMapping)>;
@@ -105,7 +47,7 @@ impl Almanac {
 
         for line in lines {
             let current_line_state = match line.chars().next() {
-                Some(c) if c.is_digit(10) => State::InInfo,
+                Some(c) if c.is_ascii_digit() => State::InInfo,
                 Some(c) if c.is_whitespace() => State::Blank,
                 None => State::Blank,
                 _ => State::InDefinition,
@@ -192,6 +134,17 @@ impl Almanac {
     }
 }
 
+pub struct SeedInfo {
+    pub seed: usize,
+    pub soil: usize,
+    pub fertilizer: usize,
+    pub water: usize,
+    pub light: usize,
+    pub temperature: usize,
+    pub humidity: usize,
+    pub location: usize,
+}
+
 #[cfg(test)]
 mod almanac_tests {
     use super::*;
@@ -272,7 +225,7 @@ humidity-to-location map:
         let almanac = Almanac::from_str(input);
         let seed_info = almanac.to_seed_info();
 
-        let expected_soil_numbers = vec![(79, 81), (14, 14), (55, 57), (13, 13)];
+        let expected_soil_numbers = [(79, 81), (14, 14), (55, 57), (13, 13)];
 
         for (seed, expected_soil) in seed_info.iter().zip(expected_soil_numbers.iter()) {
             assert_eq!(seed.seed, expected_soil.0);

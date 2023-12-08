@@ -1,5 +1,6 @@
-mod seed_info;
-use seed_info::Almanac;
+mod almanac;
+
+use almanac::Almanac;
 
 fn main() {
     let puzzle_input = include_str!("../input.txt");
