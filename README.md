@@ -27,3 +27,4 @@ cargo test --bin day01
 | [Day 3: Gear Ratios](https://adventofcode.com/2023/day/3)                     | [✔️](day03/src/schematic.rs)                | [✔️](day03/src/schematic.rs)             |
 | [Day 4: Scratchcards ](https://adventofcode.com/2023/day/4)                   | [✔️](day04/src/scratchcard.rs)              | [✔️](day04/src/scratchcard.rs)           |
 | [Day 5: If You Give A Seed A Fertilizer](https://adventofcode.com/2023/day/5) | [✔️](day05/src/almanac_utils/almanac.rs.rs) | [✔️](day05/src/almanac_utils/almanac.rs) |
+| Day 6: Wait For It                                                            |                                             |                                          |
